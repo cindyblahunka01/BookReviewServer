@@ -14,7 +14,7 @@ app.use(express.json());
 app.use("/user", controllers.userController);
 app.use(require("./middleware/validate-jwt"));
 app.use("/books", controllers.bookController);
-// app.use("/photo", controllers.photoController);
+app.use("/reviews", controllers.reviewController);
 
 
 db.authenticate()

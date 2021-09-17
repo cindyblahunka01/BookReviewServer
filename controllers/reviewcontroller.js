@@ -38,50 +38,49 @@ router.get("/myReviews", (async (req, res) => {
     }
 }));
 
-//Update a Book
+//Update a Review
 router.put("/update/:idToUpdate", async (req, res) => {
-    const { title, author, description, isbn } = req.body.books;
-    const bookId = req.params.idToUpdate;
+    const { isbn, title, review } = req.body.reviews;
+    const reviewId = req.params.idToUpdate;
     const userId = req.user.id;
 
     const query = {
         where: {
-            id: bookId,
+            id: reviewId,
             owner_id: userId
         }
     };
 
-    const updatedBook = {
-        title: title,
-        author: author,
-        description: description,
+    const updatedReview = {
         isbn: isbn,
+        title: title,
+        review: review,
         owner_id: userId
     };
 
     try {
-        const update = await BooksModel.update(updatedBook, query);
+        const update = await ReviewsModel.update(updatedReview, query);
         res.status(200).json(update);
     } catch (err) {
         res.status(500).json({ error: err });
     }
 });
 
-//Delete a book
+//Delete a review
 router.delete("/delete/:idToDelete", async (req, res) => {
     const ownerId = req.user.id
-    const bookId = req.params.idToDelete;
+    const reviewId = req.params.idToDelete;
 
     try {
         const query = {
             where: {
-                id: bookId,
+                id: reviewId,
                 owner_id: ownerId
             }
         };
 
-        await BooksModel.destroy(query);
-        res.status(200).json({ message: "Your book has been deleted" });
+        await ReviewsModel.destroy(query);
+        res.status(200).json({ message: "Your review has been deleted" });
     } catch (err) {
         res.status(500).json({ error: err });
     }
