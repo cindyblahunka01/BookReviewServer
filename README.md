@@ -11,3 +11,12 @@ This server was completed during my final badge of [EFA's](https://elevenfifty.o
 - Creating API Endpoints
 - React Basics
 - Connecting Server and Client
+
+## Steps to run this server
+- Clone this repository (git clone)
+- Run git remote remove origin
+- Run npm install to get any dependencies
+- Create .env file (look for process.env fields in db.js)
+- Create database in pgAdmin
+- Use Postman to test endpoints
+- Set up your own repository on Github and push your code 
