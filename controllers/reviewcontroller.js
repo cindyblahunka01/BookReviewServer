@@ -3,7 +3,7 @@ const Express = require("express");
 const router = Express.Router();
 let validateJWT = require("../middleware/validate-jwt");
 
-const { ReviewsModel } = require("../models");
+const { Review, User } = require("../models");
 
 //create/add review 
 router.post("/add",  async (req, res) => {
@@ -16,7 +16,7 @@ router.post("/add",  async (req, res) => {
         owner_id: id
     }
     try {
-        const newReview = await ReviewsModel.create(reviewEntry);
+        const newReview = await Review.create(reviewEntry);
         res.status(200).json(newReview);
     } catch (err) {
         res.status(500).json({ error: err });
@@ -27,7 +27,7 @@ router.post("/add",  async (req, res) => {
 router.get("/myReviews", (async (req, res) => {
     const { id } = req.user;
     try {
-        const userReviews = await ReviewsModel.findAll({
+        const userReviews = await Review.findAll({
             where: {
                 owner_id: id
             }
@@ -59,7 +59,7 @@ router.put("/update/:idToUpdate", async (req, res) => {
     };
 
     try {
-        const update = await ReviewsModel.update(updatedReview, query);
+        const update = await Review.update(updatedReview, query);
         res.status(200).json(update);
     } catch (err) {
         res.status(500).json({ error: err });
@@ -79,7 +79,7 @@ router.delete("/delete/:idToDelete", async (req, res) => {
             }
         };
 
-        await ReviewsModel.destroy(query);
+        await Review.destroy(query);
         res.status(200).json({ message: "Your review has been deleted" });
     } catch (err) {
         res.status(500).json({ error: err });

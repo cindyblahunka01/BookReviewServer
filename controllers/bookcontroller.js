@@ -3,7 +3,7 @@ const Express = require("express");
 const router = Express.Router();
 let validateJWT = require("../middleware/validate-jwt");
 
-const { BooksModel } = require("../models");
+const { Book, User } = require("../models");
 
 //create/add book 
 router.post("/add",  async (req, res) => {
@@ -17,8 +17,16 @@ router.post("/add",  async (req, res) => {
         owner_id: id
     }
     try {
-        const newBook = await BooksModel.create(bookEntry);
-        res.status(200).json(newBook);
+        let u = await User.findOne({ where: {id: req.body.id }})
+        if (u) {
+            const newBook = await Book.create(bookEntry);
+            res.status(200).json(newBook);
+        } else {
+            message = {
+                message: "Can't make a book entry, user does not exist",
+                data: null,
+            }
+        }
     } catch (err) {
         res.status(500).json({ error: err });
     }
@@ -28,7 +36,7 @@ router.post("/add",  async (req, res) => {
 router.get("/myBooks", (async (req, res) => {
     const { id } = req.user;
     try {
-        const userBooks = await BooksModel.findAll({
+        const userBooks = await Book.findAll({
             where: {
                 owner_id: id
             }
@@ -61,7 +69,7 @@ router.put("/update/:idToUpdate", async (req, res) => {
     };
 
     try {
-        const update = await BooksModel.update(updatedBook, query);
+        const update = await Book.update(updatedBook, query);
         res.status(200).json(update);
     } catch (err) {
         res.status(500).json({ error: err });
@@ -81,7 +89,7 @@ router.delete("/delete/:idToDelete", async (req, res) => {
             }
         };
 
-        await BooksModel.destroy(query);
+        await Book.destroy(query);
         res.status(200).json({ message: "Your book has been deleted" });
     } catch (err) {
         res.status(500).json({ error: err });
