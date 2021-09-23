@@ -1,35 +1,40 @@
-const { Router } = require("express");
-const Express = require("express");
-const router = Express.Router();
+const router = require("express").Router();
 let validateJWT = require("../middleware/validate-jwt");
-
-const { Review, User } = require("../models");
+let validateIsAdmin = require("../middleware/validateIsAdmin");
+const { ReviewsModel, UserModel } = require("../models");
 
 //create/add review 
-router.post("/add",  async (req, res) => {
+router.post("/add",  validateJWT, async (req, res) => {
     const { isbn, title, review } = req.body.reviews; 
     const id = req.user.id; 
     const reviewEntry = {
         isbn,
         title,
-        review,
-        owner_id: id
+        review
     }
     try {
-        const newReview = await Review.create(reviewEntry);
-        res.status(200).json(newReview);
+        const findUser = await UserModel.findOne({
+            where: { id: id }
+        })
+        if (findUser) {
+            const newReview = await ReviewsModel.create(reviewEntry);
+            await newReview.setUser(findUser)
+            res.status(200).json(newReview);
+        } else {
+            res.status(401).json({ Message: "Can't create review entry, user does not exist" })
+        }
     } catch (err) {
         res.status(500).json({ error: err });
     }
 });
 
 // GET reviews by user
-router.get("/myReviews", (async (req, res) => {
-    const { id } = req.user;
+router.get("/myReviews", validateJWT, (async (req, res) => {
+    const id = req.user.id;
     try {
-        const userReviews = await Review.findAll({
+        const userReviews = await ReviewsModel.findAll({
             where: {
-                owner_id: id
+                userId: id
             }
         });
         res.status(200).json(userReviews);
@@ -38,8 +43,16 @@ router.get("/myReviews", (async (req, res) => {
     }
 }));
 
+//Get all reviews
+router.get("/allReviews", validateJWT, validateIsAdmin, (async (req, res) => {
+    await ReviewsModel.findAll().then(reviews => {
+        res.json(reviews)
+    })
+        .catch((err) => res.status(500).json({ error: err }))
+}));
+
 //Update a Review
-router.put("/update/:idToUpdate", async (req, res) => {
+router.put("/update/:idToUpdate", validateJWT, async (req, res) => {
     const { isbn, title, review } = req.body.reviews;
     const reviewId = req.params.idToUpdate;
     const userId = req.user.id;
@@ -47,7 +60,7 @@ router.put("/update/:idToUpdate", async (req, res) => {
     const query = {
         where: {
             id: reviewId,
-            owner_id: userId
+            userId: userId
         }
     };
 
@@ -55,11 +68,11 @@ router.put("/update/:idToUpdate", async (req, res) => {
         isbn: isbn,
         title: title,
         review: review,
-        owner_id: userId
+        userId: userId
     };
 
     try {
-        const update = await Review.update(updatedReview, query);
+        const update = await ReviewsModel.update(updatedReview, query);
         res.status(200).json(update);
     } catch (err) {
         res.status(500).json({ error: err });
@@ -67,7 +80,7 @@ router.put("/update/:idToUpdate", async (req, res) => {
 });
 
 //Delete a review
-router.delete("/delete/:idToDelete", async (req, res) => {
+router.delete("/delete/:idToDelete", validateJWT, async (req, res) => {
     const ownerId = req.user.id
     const reviewId = req.params.idToDelete;
 
@@ -75,11 +88,11 @@ router.delete("/delete/:idToDelete", async (req, res) => {
         const query = {
             where: {
                 id: reviewId,
-                owner_id: ownerId
+                userId: ownerId
             }
         };
 
-        await Review.destroy(query);
+        await ReviewsModel.destroy(query);
         res.status(200).json({ message: "Your review has been deleted" });
     } catch (err) {
         res.status(500).json({ error: err });

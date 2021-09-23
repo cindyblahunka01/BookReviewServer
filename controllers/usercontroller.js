@@ -1,18 +1,17 @@
-const express = require("express");
-const router = express.Router();
-const { User } = require("../models");
+const router = require("express").Router();
+const { UserModel } = require("../models");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const { UniqueConstraintError } = require("sequelize/lib/errors");
 
 router.post('/create', async (req, res) => {
-    const { email, password, role } = req.body.user;
+    const { email, password, isAdmin } = req.body.user;
     
     try {
-        const NewUser = await User.create({
+        const NewUser = await UserModel.create({
             email,
             password: bcrypt.hashSync(password, 13),
-            role
+            isAdmin
         })
         
         let token = jwt.sign(
@@ -43,7 +42,7 @@ router.post('/login', async (req, res) => {
     const { email, password } = req.body.user;
 
     try {
-        const LoggedInUser = await User.findOne({
+        const LoggedInUser = await UserModel.findOne({
             where: {
                 email: email,
             } 
@@ -81,7 +80,7 @@ router.post('/login', async (req, res) => {
 // GET all users if role = admin
 router.get("/", async (req, res) => {
     try {
-        const allUsers = await User.findAll();
+        const allUsers = await UserModel.findAll();
         res.status(200).json(allUsers);
     } catch (err) {
         res.status(500).json({ error: err });

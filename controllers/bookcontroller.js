@@ -1,44 +1,41 @@
-const { Router } = require("express");
-const Express = require("express");
-const router = Express.Router();
+const router = require("express").Router();
 let validateJWT = require("../middleware/validate-jwt");
-
-const { Book, User } = require("../models");
+let validateIsAdmin = require("../middleware/validateIsAdmin");
+const { BooksModel, UserModel } = require("../models");
 
 //create/add book 
-router.post("/add",  async (req, res) => {
-    const { title, author, description, isbn } = req.body.books; 
-    const id = req.user.id; 
+router.post("/add", validateJWT, async (req, res) => {
+    const { title, author, description, isbn } = req.body.books 
+    const id = req.user.id
     const bookEntry = {
         title,
         author,
         description,
-        isbn,
-        owner_id: id
-    }
-    try {
-        let u = await User.findOne({ where: {id: req.body.id }})
-        if (u) {
-            const newBook = await Book.create(bookEntry);
-            res.status(200).json(newBook);
-        } else {
-            message = {
-                message: "Can't make a book entry, user does not exist",
-                data: null,
+        isbn }
+
+        try {
+            const findUser = await UserModel.findOne({
+                where: { id: id }
+            })
+            if (findUser) {
+                const newBook = await BooksModel.create(bookEntry);
+                await newBook.setUser(findUser)
+                res.status(200).json(newBook);
+            } else {
+                res.status(401).json({ Message: "Can't create book entry, user does not exist" })
             }
+        } catch (err) {
+            res.status(500).json({ error: err });
         }
-    } catch (err) {
-        res.status(500).json({ error: err });
-    }
 });
 
 // GET books by user
-router.get("/myBooks", (async (req, res) => {
-    const { id } = req.user;
+router.get("/myBooks", validateJWT, (async (req, res) => {
+    const id = req.user.id;
     try {
-        const userBooks = await Book.findAll({
+        const userBooks = await BooksModel.findAll({
             where: {
-                owner_id: id
+                userId: id
             }
         });
         res.status(200).json(userBooks);
@@ -47,8 +44,17 @@ router.get("/myBooks", (async (req, res) => {
     }
 }));
 
+// GET all books user and admin
+router.get("/allBooks", validateJWT, validateIsAdmin, (async (req, res) => {
+    await BooksModel.findAll()
+    .then(books => {
+        res.json(books)
+        })
+    .catch (err => res.status(500).json({ error: err }))
+}));
+
 //Update a Book
-router.put("/update/:idToUpdate", async (req, res) => {
+router.put("/update/:idToUpdate", validateJWT, async (req, res) => {
     const { title, author, description, isbn } = req.body.books;
     const bookId = req.params.idToUpdate;
     const userId = req.user.id;
@@ -56,7 +62,7 @@ router.put("/update/:idToUpdate", async (req, res) => {
     const query = {
         where: {
             id: bookId,
-            owner_id: userId
+            userId: userId
         }
     };
 
@@ -65,11 +71,11 @@ router.put("/update/:idToUpdate", async (req, res) => {
         author: author,
         description: description,
         isbn: isbn,
-        owner_id: userId
+        userId: userId
     };
 
     try {
-        const update = await Book.update(updatedBook, query);
+        const update = await BooksModel.update(updatedBook, query);
         res.status(200).json(update);
     } catch (err) {
         res.status(500).json({ error: err });
@@ -77,7 +83,7 @@ router.put("/update/:idToUpdate", async (req, res) => {
 });
 
 //Delete a book
-router.delete("/delete/:idToDelete", async (req, res) => {
+router.delete("/delete/:idToDelete", validateJWT, async (req, res) => {
     const ownerId = req.user.id
     const bookId = req.params.idToDelete;
 
@@ -85,11 +91,11 @@ router.delete("/delete/:idToDelete", async (req, res) => {
         const query = {
             where: {
                 id: bookId,
-                owner_id: ownerId
+                userId: ownerId
             }
         };
 
-        await Book.destroy(query);
+        await BooksModel.destroy(query);
         res.status(200).json({ message: "Your book has been deleted" });
     } catch (err) {
         res.status(500).json({ error: err });
